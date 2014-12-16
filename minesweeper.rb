@@ -1,3 +1,4 @@
+require 'yaml'
 require 'byebug'
 
 class Tile
@@ -172,22 +173,30 @@ class Game
   attr_reader :board
 
   def initialize
-    size, bombs = start_game
-    @board = Board.new(size, bombs)
+    @board = start_game
+    #byebug
   end
 
   def start_game
-    puts "Please input board size: "
-    size = gets.chomp.to_i
-    puts "Please enter the number of bombs: "
-    bombs = gets.chomp.to_i
-    [size, bombs]
+    puts "New Game or Load from Disk? (n/l)"
+    selection = gets.chomp
+    if selection == 'l'
+      puts "Please input filename"
+      filename = gets.chomp
+      content = File.read("#{filename}.yml")
+      YAML::load(content)
+    else
+      puts "Please input board size: "
+      size = gets.chomp.to_i
+      puts "Please enter the number of bombs: "
+      bombs = gets.chomp.to_i
+      Board.new(size, bombs)
+    end
   end
 
   def play
-
+    board.render
     until board.won?
-      board.render
       coordinates, move = get_move
       if move == 'r'
         board[coordinates].reveal
@@ -196,11 +205,33 @@ class Game
         board[coordinates].flag
         #byebug
       end
+      board.render
+      if save?
+        save
+        puts "Game saved."
+        return
+      end
     end
 
     puts (board.won? ? "You won" : "You lose")
 
     board.bomb_render
+  end
+
+  def save?
+    puts "Continue or Save? (c/s) "
+    response = gets.chomp
+    response == 's' ? true : false
+  end
+
+  def save
+    puts "Please input filename: "
+    filename = gets.chomp
+    saved_board = board.to_yaml
+    File.open("#{filename}.yml", "w") do |f|
+      f.puts saved_board
+    end
+
   end
 
   def get_move
